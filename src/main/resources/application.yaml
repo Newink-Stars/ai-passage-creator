@@ -1,0 +1,54 @@
+﻿spring:
+  application:
+    name: ai-passage-creator
+  profiles:
+    active: local
+  # session 配置
+  session:
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
+  # MySQL 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_passage_creator
+    username: root
+    password: 123456
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password:
+mybatis-flex:
+  configuration:
+    map-underscore-to-camel-case: false
+server:
+  port: 8567
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+# springdoc-openapi 配置
+springdoc:
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.newink.aipassagecreator.controller
+# knife4j 接口文档配置
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+logging:
+  level:
+    # 关闭 Spring 框架的 INFO 日志，只看 WARN/ERROR
+    org.springframework: WARN
+    # 关闭你自己包下的 INFO 日志（按需调整）
+    com.newink: WARN
+  # 让 INFO 日志输出到 STDOUT（部分版本生效）
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"

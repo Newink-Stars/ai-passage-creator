@@ -4,7 +4,6 @@ import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
-import com.mybatisflex.core.keygen.KeyGenerators;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,16 +14,14 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 用户实体类
- *
- * @author <a href="https://codefather.cn">编程导航学习圈</a>
+ * 文章实体类
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(value = "user", camelToUnderline = false)
-public class User implements Serializable {
+@Table(value = "article", camelToUnderline = false)
+public class Article implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -32,58 +29,78 @@ public class User implements Serializable {
     /**
      * id
      */
-    @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
+    @Id(keyType = KeyType.Auto)
     private Long id;
 
     /**
-     * 账号
+     * 任务ID（UUID）
      */
-    private String userAccount;
+    private String taskId;
 
     /**
-     * 密码
+     * 用户ID
      */
-    private String userPassword;
+    private Long userId;
 
     /**
-     * 用户昵称
+     * 选题
      */
-    private String userName;
+    private String topic;
 
     /**
-     * 用户头像
+     * 主标题
      */
-    private String userAvatar;
+    private String mainTitle;
 
     /**
-     * 用户简介
+     * 副标题
      */
-    private String userProfile;
+    private String subTitle;
 
     /**
-     * 用户角色：user/admin
+     * 大纲（JSON格式）
      */
-    private String userRole;
+    private String outline;
 
     /**
-     * 剩余配额
+     * 正文（Markdown格式，不含图片）
      */
-    private Integer quota;
+    private String content;
 
     /**
-     * 成为会员时间
+     * 完整图文（Markdown格式，含图片）
      */
-//    private LocalDateTime vipTime;
+    private String fullContent;
 
     /**
-     * 编辑时间
+     * 封面图 URL
      */
-    private LocalDateTime editTime;
+    private String coverImage;
+
+    /**
+     * 配图列表（JSON数组）
+     */
+    private String images;
+
+    /**
+     * 状态：PENDING/PROCESSING/COMPLETED/FAILED
+     */
+    private String status;
+
+    /**
+     * 错误信息
+     */
+    private String errorMessage;
 
     /**
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 完成时间
+     */
+    private LocalDateTime completedTime;
 
     /**
      * 更新时间
@@ -97,3 +114,4 @@ public class User implements Serializable {
     private Integer isDelete;
 
 }
+

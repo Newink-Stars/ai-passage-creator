@@ -3,6 +3,9 @@
     name: ai-passage-creator
   profiles:
     active: local
+  ai:
+    dashscope:
+      api-key: sk-932a3f88763745078be698c826b1cffd
   # session 配置
   session:
     store-type: redis

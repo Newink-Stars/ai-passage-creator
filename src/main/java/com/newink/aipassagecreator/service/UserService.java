@@ -1,9 +1,14 @@
 package com.newink.aipassagecreator.service;
 
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.newink.aipassagecreator.model.dto.user.UserQueryRequest;
 import com.newink.aipassagecreator.model.entity.User;
 import com.newink.aipassagecreator.model.vo.LoginUserVO;
+import com.newink.aipassagecreator.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 /**
  * 用户 服务层。
@@ -57,4 +62,28 @@ public interface UserService extends IService<User> {
      * @return 加密后的用户密码
      */
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 获取脱敏后的用户信息（分页）
+     *
+     * @param userList 用户列表
+     * @return
+     */
+    List<UserVO> getUserVOList(List<User> userList);
+
+    /**
+     * 获取脱敏后的用户信息
+     *
+     * @param user 用户信息
+     * @return
+     */
+    UserVO getUserVO(User user);
+
+    /**
+     * 根据查询条件构造数据查询参数
+     *
+     * @param userQueryRequest
+     * @return
+     */
+    QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest);
 }

@@ -1,6 +1,7 @@
 package com.newink.aipassagecreator.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.mybatisflex.core.paginate.Page;
 import com.newink.aipassagecreator.annotation.AuthCheck;
 import com.newink.aipassagecreator.common.BaseResponse;
 import com.newink.aipassagecreator.common.DeleteRequest;
@@ -11,15 +12,21 @@ import com.newink.aipassagecreator.exception.ErrorCode;
 import com.newink.aipassagecreator.exception.ThrowUtils;
 import com.newink.aipassagecreator.model.dto.user.UserAddRequest;
 import com.newink.aipassagecreator.model.dto.user.UserLoginRequest;
+import com.newink.aipassagecreator.model.dto.user.UserQueryRequest;
 import com.newink.aipassagecreator.model.dto.user.UserRegisterRequest;
 import com.newink.aipassagecreator.model.entity.User;
 import com.newink.aipassagecreator.model.vo.LoginUserVO;
+import com.newink.aipassagecreator.model.vo.UserVO;
 import com.newink.aipassagecreator.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
+@Tag(name = "userController",description="用户")
 @RequestMapping("/user")
 public class UserController {
 
@@ -99,5 +106,25 @@ public class UserController {
         }
         boolean b = userService.removeById(deleteRequest.getId());
         return ResultUtils.success(b);
+    }
+
+    /**
+     * 分页获取用户封装列表（仅管理员）
+     *
+     * @param userQueryRequest 查询请求参数
+     */
+    @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long pageNum = userQueryRequest.getPageNum();
+        long pageSize = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(Page.of(pageNum, pageSize),
+                userService.getQueryWrapper(userQueryRequest));
+        // 数据脱敏
+        Page<UserVO> userVOPage = new Page<>(pageNum, pageSize, userPage.getTotalRow());
+        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
+        userVOPage.setRecords(userVOList);
+        return ResultUtils.success(userVOPage);
     }
 }

@@ -25,7 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/article")
-@Tag(name = "文章接口")
+@Tag(name = "articleController",description = "文章接口")
 @Slf4j
 public class ArticleController {
     @Resource

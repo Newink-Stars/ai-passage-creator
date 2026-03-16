@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomePage from '@/views/HomePage.vue'
 import UserLoginPage from '@/views/user/UserLoginPage.vue'
 import UserRegisterPage from '@/views/user/UserRegisterPage.vue'
-import HomePage from '@/views/HomePage.vue'
+import UserManagePage from '@/views/admin/UserManagePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,6 +11,21 @@ const router = createRouter({
       path: '/',
       name: '主页',
       component: HomePage,
+    },
+    {
+      path: '/create',
+      name: '创作文章',
+      component: () => import('@/views/article/ArticleCreatePage.vue'),
+    },
+    {
+      path: '/article/list',
+      name: '文章列表',
+      component: () => import('@/views/article/ArticleListPage.vue'),
+    },
+    {
+      path: '/article/:taskId',
+      name: '文章详情',
+      component: () => import('@/views/article/ArticleDetailPage.vue'),
     },
     {
       path: '/user/login',
@@ -24,7 +40,7 @@ const router = createRouter({
     {
       path: '/admin/userManage',
       name: '用户管理',
-      component: () => import('@/views/admin/UserManagePage.vue'),
+      component: UserManagePage,
     },
   ],
 })

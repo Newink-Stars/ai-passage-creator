@@ -50,7 +50,7 @@
               name="userPassword"
               :rules="[
                 { required: true, message: '请输入密码' },
-                { min: 8, message: '密码长度不能小于 8 位' },
+                { min: 6, message: '密码长度不能小于 6 位' },
               ]"
             >
               <a-input-password 
@@ -65,7 +65,7 @@
               </a-input-password>
             </a-form-item>
             
-            <a-form-item>
+            <a-form-item style="margin-top: 24px">
               <a-button type="primary" html-type="submit" size="large" block class="submit-btn">
                 登录
               </a-button>

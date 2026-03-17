@@ -124,36 +124,56 @@ public interface PromptConstant {
      * 智能体4：分析配图需求
      */
     String AGENT4_IMAGE_REQUIREMENTS_PROMPT = """
-        你是一位专业的新媒体编辑,擅长为文章配图。
-        
-        根据以下文章内容,分析配图需求:
-        主标题：{mainTitle}
-        正文：
-        {content}
-        
-        要求:
-        1. 识别需要配图的位置(封面、关键章节等)
-        2. 建议配图数量: 3-5张
-        3. 为每个配图位置生成英文搜索关键词(适合 Pexels 图库检索)
-        4. 关键词要准确、具体,能检索到高质量图片
-        5. sectionTitle 必须与正文中的章节标题完全一致(用于定位插入位置)
-        6. position=1 为封面图,sectionTitle 留空
-        
-        请直接返回 JSON 格式,不要有其他内容:
-        [
-          {
-            "position": 1,
-            "type": "cover",
-            "sectionTitle": "",
-            "keywords": "AI technology office modern"
-          },
-          {
-            "position": 2,
-            "type": "section",
-            "sectionTitle": "章节标题（与正文完全一致）",
-            "keywords": "business success teamwork"
-          }
-        ]
+            你是一位专业的新媒体编辑,擅长为文章配图。
+            
+                根据以下文章内容,分析配图需求:
+                主标题：{mainTitle}
+                正文：
+                {content}
+            
+                要求:
+                1. 识别需要配图的位置(封面、关键章节等)
+                2. 建议配图数量: 3-5张
+                3. 为每个配图选择最合适的图片来源(imageSource):
+                   - PEXELS: 适合真实场景、产品照片、人物照片、自然风景等写实图片
+                   - NANO_BANANA: 适合创意插画、信息图表、需要文字渲染、抽象概念、艺术风格等 AI 生成图片
+                   - MERMAID: 适合流程图、架构图、时序图、关系图、甘特图等结构化图表
+                4. 对于 PEXELS 来源: 提供英文搜索关键词(keywords),要准确、具体
+                5. 对于 NANO_BANANA 来源: 提供详细的英文生图提示词(prompt),描述场景、风格、细节
+                6. 对于 MERMAID 来源: 
+                   - 分析文章内容，识别需要流程图的位置（如：工作流程、系统架构、数据流向等）
+                   - 在 prompt 字段生成完整的 Mermaid 代码
+                   - keywords 留空
+                7. sectionTitle 必须与正文中的章节标题完全一致(用于定位插入位置)
+                8. position=1 为封面图,sectionTitle 留空
+            
+                请直接返回 JSON 格式,不要有其他内容:
+                [
+                  {
+                    "position": 1,
+                    "type": "cover",
+                    "sectionTitle": "",
+                    "imageSource": "NANO_BANANA",
+                    "keywords": "",
+                    "prompt": "A modern minimalist illustration of AI technology concept, featuring abstract neural network patterns with blue and purple gradient colors, clean design suitable for article cover, 16:9 aspect ratio"
+                  },
+                  {
+                    "position": 2,
+                    "type": "section",
+                    "sectionTitle": "章节标题（与正文完全一致）",
+                    "imageSource": "PEXELS",
+                    "keywords": "business success teamwork office",
+                    "prompt": ""
+                  },
+                  {
+                    "position": 3,
+                    "type": "section",
+                    "sectionTitle": "系统架构（与正文完全一致）",
+                    "imageSource": "MERMAID",
+                    "keywords": "",
+                    "prompt": "flowchart TB\\n    A[用户请求] --> B[负载均衡]\\n    B --> C[应用服务器]\\n    C --> D[数据库]\\n    C --> E[缓存]"
+                  }
+                ]
         """;
 
     // region 文章风格 Prompt

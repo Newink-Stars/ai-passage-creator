@@ -6,6 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.newink.aipassagecreator.annotation.AgentExecution;
 import com.newink.aipassagecreator.constant.PromptConstant;
 import com.newink.aipassagecreator.model.dto.article.ArticleState;
+import com.newink.aipassagecreator.model.dto.image.ImageRequest;
 import com.newink.aipassagecreator.model.enums.ImageMethodEnum;
 import com.newink.aipassagecreator.model.enums.SseMessageTypeEnum;
 import com.newink.aipassagecreator.utils.GsonUtils;
@@ -33,9 +34,6 @@ public class ArticleAgentService {
 
     @Resource
     private ImageServiceStrategy imageServiceStrategy;
-
-//    @Resource
-//    private CosService cosService;
 
     /**
      * 执行完整的文章生成流程
@@ -81,7 +79,6 @@ public class ArticleAgentService {
             throw new RuntimeException("文章生成失败: " + e.getMessage(), e);
         }
     }
-
 
     /**
      * 智能体1：生成标题
@@ -144,7 +141,7 @@ public class ArticleAgentService {
     }
 
     /**
-     * 智能体5：生成配图（串行执行）
+     * 智能体5：生成配图（串行执行，支持混用多种配图方式，统一上传到 COS）
      */
     private void agent5GenerateImages(ArticleState state, Consumer<String> streamHandler) {
         List<ArticleState.ImageResult> imageResults = new ArrayList<>();
@@ -154,41 +151,34 @@ public class ArticleAgentService {
             log.info("智能体5：开始获取配图, position={}, imageSource={}, keywords={}",
                     requirement.getPosition(), imageSource, requirement.getKeywords());
 
-            // 使用策略模式根据 imageSource 选择对应的图片服务
-            ImageServiceStrategy.ImageResult result = imageServiceStrategy.getImage(
-                    imageSource,
-                    requirement.getKeywords(),
-                    requirement.getPrompt()
-            );
+            // 构建图片请求对象
+            ImageRequest imageRequest = ImageRequest.builder()
+                    .keywords(requirement.getKeywords())
+                    .prompt(requirement.getPrompt())
+                    .position(requirement.getPosition())
+                    .type(requirement.getType())
+                    .build();
 
-            String imageUrl = result.getUrl();
+            // 使用策略模式获取图片并统一上传到 COS
+            ImageServiceStrategy.ImageResult result = imageServiceStrategy.getImageAndUpload(imageSource, imageRequest);
+
+            String cosUrl = result.getUrl();
             ImageMethodEnum method = result.getMethod();
 
-            // 降级策略
-            if (!result.isSuccess()) {
-                imageUrl = imageServiceStrategy.getFallbackImage(requirement.getPosition());
-                method = ImageMethodEnum.PICSUM;
-                log.warn("智能体5：图片获取失败, 使用降级方案, position={}, originalSource={}",
-                        requirement.getPosition(), imageSource);
-            }
-
-            // 使用图片直接 URL（MVP 阶段不上传到 COS，简化流程）
-            String finalImageUrl = imageUrl;// cosService.useDirectUrl(imageUrl);
-
-            // 创建配图结果
-            ArticleState.ImageResult imageResult = buildImageResult(requirement, finalImageUrl, method);
+            // 创建配图结果（URL 已经是 COS 地址）
+            ArticleState.ImageResult imageResult = buildImageResult(requirement, cosUrl, method);
             imageResults.add(imageResult);
 
             // 推送单张配图完成
             String imageCompleteMessage = SseMessageTypeEnum.IMAGE_COMPLETE.getStreamingPrefix() + GsonUtils.toJson(imageResult);
             streamHandler.accept(imageCompleteMessage);
 
-            log.info("智能体5：配图获取成功, position={}, method={}",
-                    requirement.getPosition(), method.getValue());
+            log.info("智能体5：配图获取并上传成功, position={}, method={}, cosUrl={}",
+                    requirement.getPosition(), method.getValue(), cosUrl);
         }
 
         state.setImages(imageResults);
-        log.info("智能体5：所有配图生成完成, count={}", imageResults.size());
+        log.info("智能体5：所有配图生成并上传完成, count={}", imageResults.size());
     }
 
     /**
@@ -220,9 +210,6 @@ public class ArticleAgentService {
         state.setFullContent(fullContent.toString());
         log.info("图文合成完成, fullContentLength={}", fullContent.length());
     }
-
-
-
 
     // region 辅助方法
 

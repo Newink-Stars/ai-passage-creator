@@ -1,5 +1,6 @@
 package com.newink.aipassagecreator.service;
 
+import com.newink.aipassagecreator.model.dto.image.ImageData;
 import com.newink.aipassagecreator.model.dto.image.ImageRequest;
 import com.newink.aipassagecreator.model.enums.ImageMethodEnum;
 
@@ -15,6 +16,20 @@ import com.newink.aipassagecreator.model.enums.ImageMethodEnum;
  * @author <a href="https://codefather.cn">编程导航学习圈</a>
  */
 public interface ImageSearchService {
+
+    /**
+     * 获取图片数据（用于统一上传到 COS）
+     * 子类可重写此方法返回更高效的数据格式（如字节数据）
+     *
+     * @param request 图片请求对象
+     * @return ImageData 对象，包含图片字节或 URL
+     */
+    default ImageData getImageData(ImageRequest request) {
+        // 默认实现：通过 getImage 获取 URL，然后转换为 ImageData
+        String url = getImage(request);
+        return ImageData.fromUrl(url);
+    }
+
     /**
      * 根据请求获取图片（推荐使用此方法）
      *

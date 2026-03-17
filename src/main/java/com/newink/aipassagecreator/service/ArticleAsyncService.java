@@ -40,12 +40,14 @@ public class ArticleAsyncService {
     /**
      * 异步执行文章生成
      *
-     * @param taskId 任务ID
-     * @param topic  选题
+     * @param taskId              任务ID
+     * @param topic               选题
+     * @param style               文章风格（可为空）
+     * @param enabledImageMethods 允许的配图方式列表（为空表示支持所有方式）
      */
     @Async("articleExecutor")
-    public void executeArticleGeneration(String taskId, String topic) {
-        log.info("异步任务开始, taskId={}, topic={}", taskId, topic);
+    public void executeArticleGeneration(String taskId, String topic, String style, java.util.List<String> enabledImageMethods) {
+        log.info("异步任务开始, taskId={}, topic={}, style={}, enabledImageMethods={}", taskId, topic, style, enabledImageMethods);
 
         try {
             // 更新状态为处理中
@@ -55,6 +57,8 @@ public class ArticleAsyncService {
             ArticleState state = new ArticleState();
             state.setTaskId(taskId);
             state.setTopic(topic);
+            state.setStyle(style);
+            state.setEnabledImageMethods(enabledImageMethods);
 
             // 执行智能体编排,并通过 SSE 推送进度
             articleAgentService.executeArticleGeneration(state, message -> {
@@ -87,7 +91,6 @@ public class ArticleAsyncService {
             sseEmitterManager.complete(taskId);
         }
     }
-
 
     /**
      * 处理智能体消息并推送
@@ -130,6 +133,16 @@ public class ArticleAsyncService {
     }
 
     /**
+     * 构建流式输出数据
+     */
+    private Map<String, Object> buildStreamingData(SseMessageTypeEnum type, String content) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("type", type.getValue());
+        data.put("content", content);
+        return data;
+    }
+
+    /**
      * 构建图片完成数据
      */
     private Map<String, Object> buildImageCompleteData(String imageJson) {
@@ -167,16 +180,6 @@ public class ArticleAsyncService {
             return null;
         }
 
-        return data;
-    }
-
-    /**
-     * 构建流式输出数据
-     */
-    private Map<String, Object> buildStreamingData(SseMessageTypeEnum type, String content) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", type.getValue());
-        data.put("content", content);
         return data;
     }
 

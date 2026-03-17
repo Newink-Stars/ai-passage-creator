@@ -113,5 +113,10 @@ public class Article implements Serializable {
     @Column(isLogicDelete = true)
     private Integer isDelete;
 
+    /**
+     * 文章风格：tech/emotional/educational/humorous
+     */
+    private String style;
+
 }
 

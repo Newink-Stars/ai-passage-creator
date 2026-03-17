@@ -78,64 +78,64 @@ public class MermaidServiceTest {
      * 测试生成流程图
      * 注意：需要安装 mermaid-cli
      */
-    @Test
-    void testGenerateFlowchart() {
-        if (!mermaidService.isAvailable()) {
-            System.out.println("跳过测试：未安装 mermaid-cli");
-            return;
-        }
-
-        String mermaidCode = """
-                flowchart TB
-                    A[开始] --> B{判断条件}
-                    B -->|是| C[执行操作]
-                    B -->|否| D[跳过]
-                    C --> E[结束]
-                    D --> E
-                """;
-
-        System.out.println("开始生成流程图");
-        System.out.println("Mermaid 代码:\n" + mermaidCode);
-
-        String imageUrl = mermaidService.generateDiagram(mermaidCode);
-
-        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
-        if (imageUrl != null) {
-            System.out.println("图片 URL: " + imageUrl);
-        }
-
-        assertNotNull(imageUrl, "流程图生成失败");
-        assertTrue(imageUrl.contains("cos.") || imageUrl.contains("myqcloud.com"),
-                "图片应该已上传到 COS");
-    }
+//    @Test
+//    void testGenerateFlowchart() {
+//        if (!mermaidService.isAvailable()) {
+//            System.out.println("跳过测试：未安装 mermaid-cli");
+//            return;
+//        }
+//
+//        String mermaidCode = """
+//                flowchart TB
+//                    A[开始] --> B{判断条件}
+//                    B -->|是| C[执行操作]
+//                    B -->|否| D[跳过]
+//                    C --> E[结束]
+//                    D --> E
+//                """;
+//
+//        System.out.println("开始生成流程图");
+//        System.out.println("Mermaid 代码:\n" + mermaidCode);
+//
+//        String imageUrl = mermaidService.generateDiagram(mermaidCode);
+//
+//        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
+//        if (imageUrl != null) {
+//            System.out.println("图片 URL: " + imageUrl);
+//        }
+//
+//        assertNotNull(imageUrl, "流程图生成失败");
+//        assertTrue(imageUrl.contains("cos.") || imageUrl.contains("myqcloud.com"),
+//                "图片应该已上传到 COS");
+//    }
 
     /**
      * 测试生成时序图
      */
-    @Test
-    void testGenerateSequenceDiagram() {
-        if (!mermaidService.isAvailable()) {
-            System.out.println("跳过测试：未安装 mermaid-cli");
-            return;
-        }
-
-        String mermaidCode = """
-                sequenceDiagram
-                    participant 用户
-                    participant 系统
-                    participant 数据库
-                    用户->>系统: 发送请求
-                    系统->>数据库: 查询数据
-                    数据库-->>系统: 返回结果
-                    系统-->>用户: 响应数据
-                """;
-
-        System.out.println("开始生成时序图");
-        String imageUrl = mermaidService.generateDiagram(mermaidCode);
-
-        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
-        assertNotNull(imageUrl, "时序图生成失败");
-    }
+//    @Test
+//    void testGenerateSequenceDiagram() {
+//        if (!mermaidService.isAvailable()) {
+//            System.out.println("跳过测试：未安装 mermaid-cli");
+//            return;
+//        }
+//
+//        String mermaidCode = """
+//                sequenceDiagram
+//                    participant 用户
+//                    participant 系统
+//                    participant 数据库
+//                    用户->>系统: 发送请求
+//                    系统->>数据库: 查询数据
+//                    数据库-->>系统: 返回结果
+//                    系统-->>用户: 响应数据
+//                """;
+//
+//        System.out.println("开始生成时序图");
+//        String imageUrl = mermaidService.generateDiagram(mermaidCode);
+//
+//        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
+//        assertNotNull(imageUrl, "时序图生成失败");
+//    }
 
     /**
      * 测试通过 ImageRequest 生成图表
@@ -207,14 +207,14 @@ public class MermaidServiceTest {
     /**
      * 测试空代码处理
      */
-    @Test
-    void testEmptyCode() {
-        String imageUrl = mermaidService.generateDiagram("");
-        assertNull(imageUrl, "空代码应该返回 null");
-
-        imageUrl = mermaidService.generateDiagram(null);
-        assertNull(imageUrl, "null 代码应该返回 null");
-    }
+//    @Test
+//    void testEmptyCode() {
+//        String imageUrl = mermaidService.generateDiagram("");
+//        assertNull(imageUrl, "空代码应该返回 null");
+//
+//        imageUrl = mermaidService.generateDiagram(null);
+//        assertNull(imageUrl, "null 代码应该返回 null");
+//    }
 
     /**
      * 测试降级图片

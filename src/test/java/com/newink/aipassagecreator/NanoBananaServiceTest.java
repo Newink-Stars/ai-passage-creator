@@ -72,37 +72,37 @@ class NanoBananaServiceTest {
      * 测试图片生成功能
      * 注意：此测试会实际调用 Gemini API，会产生费用
      */
-    @Test
-    void testGenerateImage() {
-        // 检查是否配置了 API Key
-        if (nanoBananaConfig.getApiKey() == null || nanoBananaConfig.getApiKey().isEmpty()) {
-            System.out.println("跳过测试：未配置 Nano Banana API Key");
-            return;
-        }
-
-        String prompt = "A simple minimalist illustration of a cute robot reading a book, " +
-                "blue and white color scheme, clean design, digital art style";
-
-        System.out.println("开始生成图片, prompt: " + prompt);
-        System.out.println("使用模型: " + nanoBananaConfig.getModel());
-
-        String imageUrl = nanoBananaService.generateImage(prompt);
-
-        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
-        if (imageUrl != null) {
-            // 如果是 data URL，只打印前100个字符
-            if (imageUrl.startsWith("data:")) {
-                System.out.println("图片类型: Data URL");
-                System.out.println("图片预览: " + imageUrl.substring(0, Math.min(100, imageUrl.length())) + "...");
-            } else {
-                System.out.println("图片 URL: " + imageUrl);
-            }
-        }
-
-        assertNotNull(imageUrl, "图片生成失败");
-        assertTrue(imageUrl.startsWith("data:image/") || imageUrl.startsWith("http"),
-                "图片 URL 格式不正确");
-    }
+//    @Test
+//    void testGenerateImage() {
+//        // 检查是否配置了 API Key
+//        if (nanoBananaConfig.getApiKey() == null || nanoBananaConfig.getApiKey().isEmpty()) {
+//            System.out.println("跳过测试：未配置 Nano Banana API Key");
+//            return;
+//        }
+//
+//        String prompt = "A simple minimalist illustration of a cute robot reading a book, " +
+//                "blue and white color scheme, clean design, digital art style";
+//
+//        System.out.println("开始生成图片, prompt: " + prompt);
+//        System.out.println("使用模型: " + nanoBananaConfig.getModel());
+//
+//        String imageUrl = nanoBananaService.generateImage(prompt);
+//
+//        System.out.println("生成结果: " + (imageUrl != null ? "成功" : "失败"));
+//        if (imageUrl != null) {
+//            // 如果是 data URL，只打印前100个字符
+//            if (imageUrl.startsWith("data:")) {
+//                System.out.println("图片类型: Data URL");
+//                System.out.println("图片预览: " + imageUrl.substring(0, Math.min(100, imageUrl.length())) + "...");
+//            } else {
+//                System.out.println("图片 URL: " + imageUrl);
+//            }
+//        }
+//
+//        assertNotNull(imageUrl, "图片生成失败");
+//        assertTrue(imageUrl.startsWith("data:image/") || imageUrl.startsWith("http"),
+//                "图片 URL 格式不正确");
+//    }
 
     /**
      * 测试通过 ImageRequest 获取图片

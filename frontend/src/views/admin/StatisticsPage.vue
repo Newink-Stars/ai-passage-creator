@@ -32,7 +32,7 @@
 
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1)">
-              <BarChartOutlined style="color: #3B82F6" />
+              <BarChartOutlined style="color: #3b82f6" />
             </div>
             <div class="stat-content">
               <div class="stat-label">本周创作</div>
@@ -42,7 +42,7 @@
 
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1)">
-              <RiseOutlined style="color: #A855F7" />
+              <RiseOutlined style="color: #a855f7" />
             </div>
             <div class="stat-content">
               <div class="stat-label">本月创作</div>
@@ -52,7 +52,7 @@
 
           <div class="stat-card">
             <div class="stat-icon" style="background: rgba(234, 179, 8, 0.1)">
-              <CheckCircleOutlined style="color: #EAB308" />
+              <CheckCircleOutlined style="color: #eab308" />
             </div>
             <div class="stat-content">
               <div class="stat-label">成功率</div>
@@ -127,7 +127,7 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   CrownOutlined,
-  ReloadOutlined
+  ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { getStatistics } from '@/api/statisticsController'
 import * as echarts from 'echarts'
@@ -174,39 +174,39 @@ const renderTrendChart = () => {
 
   const option: EChartsOption = {
     tooltip: {
-      trigger: 'axis'
+      trigger: 'axis',
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
-      containLabel: true
+      containLabel: true,
     },
     xAxis: {
       type: 'category',
       data: ['今日', '本周', '本月', '总计'],
       axisLine: {
         lineStyle: {
-          color: '#E2E8F0'
-        }
+          color: '#E2E8F0',
+        },
       },
       axisLabel: {
-        color: '#64748B'
-      }
+        color: '#64748B',
+      },
     },
     yAxis: {
       type: 'value',
       axisLine: {
-        show: false
+        show: false,
       },
       splitLine: {
         lineStyle: {
-          color: '#F1F5F9'
-        }
+          color: '#F1F5F9',
+        },
       },
       axisLabel: {
-        color: '#64748B'
-      }
+        color: '#64748B',
+      },
     },
     series: [
       {
@@ -216,18 +216,18 @@ const renderTrendChart = () => {
           stats.value.todayCount ?? 0,
           stats.value.weekCount ?? 0,
           stats.value.monthCount ?? 0,
-          stats.value.totalCount ?? 0
+          stats.value.totalCount ?? 0,
         ],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#4ADE80' },
-            { offset: 1, color: '#22C55E' }
+            { offset: 1, color: '#22C55E' },
           ]),
-          borderRadius: [4, 4, 0, 0]
+          borderRadius: [4, 4, 0, 0],
         },
-        barWidth: '40%'
-      }
-    ]
+        barWidth: '40%',
+      },
+    ],
   }
 
   trendChart.setOption(option)
@@ -244,15 +244,15 @@ const renderUserChart = () => {
   const option: EChartsOption = {
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: {c} ({d}%)'
+      formatter: '{b}: {c} ({d}%)',
     },
     legend: {
       orient: 'vertical',
       right: '10%',
       top: 'center',
       textStyle: {
-        color: '#64748B'
-      }
+        color: '#64748B',
+      },
     },
     series: [
       {
@@ -263,37 +263,40 @@ const renderUserChart = () => {
         itemStyle: {
           borderRadius: 8,
           borderColor: '#fff',
-          borderWidth: 2
+          borderWidth: 2,
         },
         label: {
-          show: false
+          show: false,
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 16,
-            fontWeight: 'bold'
-          }
+            fontWeight: 'bold',
+          },
         },
         data: [
           {
             value: stats.value.vipUserCount ?? 0,
             name: 'VIP 会员',
-            itemStyle: { color: '#22C55E' }
+            itemStyle: { color: '#22C55E' },
           },
           {
             value: stats.value.activeUserCount ?? 0,
             name: '活跃用户',
-            itemStyle: { color: '#3B82F6' }
+            itemStyle: { color: '#3B82F6' },
           },
           {
-            value: (stats.value.totalUserCount ?? 0) - (stats.value.activeUserCount ?? 0) - (stats.value.vipUserCount ?? 0),
+            value:
+              (stats.value.totalUserCount ?? 0) -
+              (stats.value.activeUserCount ?? 0) -
+              (stats.value.vipUserCount ?? 0),
             name: '其他用户',
-            itemStyle: { color: '#94A3B8' }
-          }
-        ]
-      }
-    ]
+            itemStyle: { color: '#94A3B8' },
+          },
+        ],
+      },
+    ],
   }
 
   userChart.setOption(option)
@@ -313,7 +316,7 @@ const renderQuotaChart = () => {
 
   const option: EChartsOption = {
     tooltip: {
-      trigger: 'item'
+      trigger: 'item',
     },
     series: [
       {
@@ -325,26 +328,26 @@ const renderQuotaChart = () => {
           {
             value: usedQuota,
             name: '已使用',
-            itemStyle: { color: '#EF4444' }
+            itemStyle: { color: '#EF4444' },
           },
           {
             value: remainingQuota,
             name: '剩余',
-            itemStyle: { color: '#22C55E' }
-          }
+            itemStyle: { color: '#22C55E' },
+          },
         ],
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
+          },
         },
         label: {
-          formatter: '{b}: {c}'
-        }
-      }
-    ]
+          formatter: '{b}: {c}',
+        },
+      },
+    ],
   }
 
   quotaChart.setOption(option)

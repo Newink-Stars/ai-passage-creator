@@ -102,6 +102,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
+import { isVip as checkIsVip } from '@/utils/permission'
 import {
   CheckCircleOutlined,
   CrownOutlined,
@@ -124,10 +125,8 @@ const route = useRoute()
 const loginUserStore = useLoginUserStore()
 const purchasing = ref(false)
 
-// 是否是 VIP
-const isVip = computed(() => {
-  return loginUserStore.loginUser.userRole === USER_ROLE_VIP
-})
+// 是否是 VIP（管理员也视为 VIP）
+const isVip = computed(() => checkIsVip(loginUserStore.loginUser))
 
 // 会员特权列表
 const features = [

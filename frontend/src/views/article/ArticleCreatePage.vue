@@ -84,12 +84,27 @@
                   </div>
                   <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
                     <a-checkbox value="PEXELS">Pexels</a-checkbox>
-                    <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+                    <a-tooltip :title="isVip ? '' : '仅限 VIP 会员'">
+                      <a-checkbox value="NANO_BANANA" :disabled="!isVip">
+                        Nano Banana
+                        <CrownOutlined v-if="!isVip" class="vip-icon" />
+                      </a-checkbox>
+                    </a-tooltip>
                     <a-checkbox value="MERMAID">Mermaid</a-checkbox>
                     <a-checkbox value="ICONIFY">Iconify</a-checkbox>
                     <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
-                    <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+                    <a-tooltip :title="isVip ? '' : '仅限 VIP 会员'">
+                      <a-checkbox value="SVG_DIAGRAM" :disabled="!isVip">
+                        SVG
+                        <CrownOutlined v-if="!isVip" class="vip-icon" />
+                      </a-checkbox>
+                    </a-tooltip>
                   </a-checkbox-group>
+                  <div v-if="!isVip" class="vip-notice">
+                    <CrownOutlined />
+                    <span>AI 生图和 SVG 图表为 VIP 专属功能，</span>
+                    <RouterLink to="/vip" class="upgrade-link">立即升级</RouterLink>
+                  </div>
                 </div>
 
                 <a-button
@@ -264,6 +279,10 @@
           </h4>
           <div v-if="isAdmin" class="quota-admin">
             <span class="quota-badge admin">管理员</span>
+            <span class="quota-text">无限次</span>
+          </div>
+          <div v-else-if="isVip" class="quota-admin">
+            <span class="quota-badge vip">VIP 会员</span>
             <span class="quota-text">无限次</span>
           </div>
           <div v-else class="quota-info">
@@ -545,6 +564,7 @@ import {
   WarningOutlined,
   CrownOutlined,
 } from '@ant-design/icons-vue'
+import { USER_ROLE_VIP } from '@/constants/user'
 import { createArticle, confirmTitle, confirmOutline } from '@/api/articleController'
 import { connectSSE, closeSSE, type SSEMessage } from '@/utils/sse'
 import { marked } from 'marked'
@@ -557,8 +577,9 @@ const loginUserStore = useLoginUserStore()
 
 // 配额相关计算属性
 const isAdmin = computed(() => loginUserStore.loginUser.userRole === USER_ROLE_ADMIN)
+const isVip = computed(() => loginUserStore.loginUser.userRole === USER_ROLE_VIP)
 const quota = computed(() => loginUserStore.loginUser.quota ?? 0)
-const hasQuota = computed(() => isAdmin.value || quota.value > 0)
+const hasQuota = computed(() => isAdmin.value || isVip.value || quota.value > 0)
 
 // 智能体步骤（对应后端 6 个步骤）
 const agentSteps = [
@@ -765,16 +786,18 @@ const handleSSEMessage = (msg: SSEMessage) => {
       outline.value = msg.outline || []
       isCreating.value = false
       isOutlineStreaming.value = false
+      // 保持在步骤1（规划大纲），用户编辑大纲时仍处于此阶段
       break
 
     case 'AGENT2_COMPLETE':
       // 大纲完成（内部处理，已在 OUTLINE_GENERATED 中切换阶段）
-      currentStep.value = 2
+      // 不改变 currentStep，保持在步骤1，等用户确认大纲后才进入步骤2
       break
 
     case 'AGENT3_STREAMING':
-      // 正文流式输出
+      // 正文流式输出，进入步骤2（撰写正文）
       currentPhase.value = 'CONTENT_GENERATING'
+      currentStep.value = 2
       isStreaming.value = true
       article.value.content += msg.content || ''
       scrollToBottom()
@@ -1151,6 +1174,9 @@ onBeforeUnmount(() => {
 }
 
 .create-btn.ant-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
   height: 52px;
   font-size: 16px;
   font-weight: 600;
@@ -1175,7 +1201,16 @@ onBeforeUnmount(() => {
     background: var(--color-border) !important;
     box-shadow: none !important;
     opacity: 0.6;
-    color: var(--color-text-muted) !important;
+    color: white !important;
+  }
+
+  /* 保护内部 span 不被压缩 */
+  > span {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100% !important;
+    line-height: 1 !important;
   }
 }
 
@@ -1275,6 +1310,44 @@ onBeforeUnmount(() => {
 .methods-group :deep(.ant-checkbox-wrapper-checked) {
   border-color: var(--color-primary);
   background: rgba(34, 197, 94, 0.08);
+}
+
+.methods-group :deep(.ant-checkbox-wrapper-disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vip-icon {
+  color: var(--color-primary);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.vip-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--color-primary-dark);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+
+  .anticon {
+    color: var(--color-primary);
+  }
+
+  .upgrade-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 /* 创作进行中 */
@@ -1516,8 +1589,13 @@ onBeforeUnmount(() => {
   font-weight: 600;
 
   &.admin {
-    background: linear-gradient(135deg, #ffd700 0%, #ffb800 100%);
-    color: #7c5c00;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+  }
+
+  &.vip {
+    background: var(--gradient-primary);
+    color: white;
   }
 }
 
@@ -1939,5 +2017,66 @@ onBeforeUnmount(() => {
   .main-content {
     padding: 20px;
   }
+}
+</style>
+
+<!-- 非 scoped 块：确保按钮样式不受 scoped [data-v-xxx] 限制 -->
+<style>
+/* 创作按钮 — 强制内部 flex 结构 */
+.create-btn.ant-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  min-height: 52px !important;
+  height: 52px !important;
+  line-height: 1 !important;
+  padding: 0 24px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3) !important;
+  box-sizing: border-box !important;
+}
+
+.create-btn.ant-btn:hover,
+.create-btn.ant-btn:focus,
+.create-btn.ant-btn:active {
+  background: var(--gradient-primary) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3) !important;
+  opacity: 0.92 !important;
+}
+
+.create-btn.ant-btn:disabled,
+.create-btn.ant-btn.ant-btn-disabled {
+  background: var(--color-border) !important;
+  box-shadow: none !important;
+  opacity: 0.6 !important;
+  color: white !important;
+}
+
+/* 保护内部 span */
+.create-btn.ant-btn > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: row !important;
+  height: 100% !important;
+  min-height: 52px !important;
+  line-height: 1 !important;
+  width: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.create-btn.ant-btn .anticon {
+  margin-right: 8px !important;
+  flex-shrink: 0 !important;
 }
 </style>

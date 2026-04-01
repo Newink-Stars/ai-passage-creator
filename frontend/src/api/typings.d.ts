@@ -70,6 +70,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListPaymentRecord = {
+    code?: number
+    data?: PaymentRecord[]
+    message?: string
+  }
+
   type BaseResponseLoginUserVO = {
     code?: number
     data?: LoginUserVO
@@ -168,6 +174,26 @@ declare namespace API {
     totalPage?: number
     totalRow?: number
     optimizeCountQuery?: boolean
+  }
+
+  type PaymentRecord = {
+    id?: number
+    userId?: number
+    stripeSessionId?: string
+    stripePaymentIntentId?: string
+    amount?: number
+    currency?: string
+    status?: string
+    productType?: string
+    description?: string
+    refundTime?: string
+    refundReason?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type refundParams = {
+    reason?: string
   }
 
   type SseEmitter = {

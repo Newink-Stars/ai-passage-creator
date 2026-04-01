@@ -2,83 +2,104 @@
   <div class="outline-editing-stage">
     <div class="stage-header">
       <h2 class="stage-title">编辑文章大纲</h2>
-      <p class="stage-subtitle">您可以对大纲进行调整，确认后 AI 将开始撰写正文</p>
+      <p class="stage-subtitle">您可以编辑、调整章节顺序，或添加新章节</p>
     </div>
 
-    <div class="outline-list">
+    <div class="outline-list" ref="outlineListRef">
       <div
-        v-for="(item, index) in localOutline"
-        :key="item.section"
-        class="outline-item"
-        :class="{ editing: editingIndex === index }"
+        v-for="(section, index) in outlineSections"
+        :key="section.section"
+        class="outline-section"
+        :data-section-id="section.section"
       >
-        <!-- 章节头部 -->
-        <div class="item-header">
-          <div class="item-left">
-            <HolderOutlined class="drag-icon" />
-            <span class="section-number">{{ index + 1 }}</span>
-            <div v-if="editingIndex !== index" class="section-title-display" @click="startEdit(index)">
-              {{ item.title }}
-              <EditOutlined class="edit-hint" />
-            </div>
-            <a-input
-              v-else
-              v-model:value="item.title"
-              class="section-title-input"
-              @blur="stopEdit"
-              @keyup.enter="stopEdit"
-              ref="titleInputRef"
-            />
-          </div>
-          <a-button
-            type="text"
-            danger
-            size="small"
-            class="delete-btn"
-            @click="removeSection(index)"
-            :disabled="localOutline.length <= 1"
-          >
-            <DeleteOutlined />
+        <div class="section-header">
+          <span class="drag-handle" title="拖动排序">⋮⋮</span>
+          <span class="section-number">{{ index + 1 }}</span>
+          <a-input
+            v-model:value="section.title"
+            placeholder="章节标题"
+            class="section-title-input"
+          />
+          <a-button type="text" danger @click="deleteSection(index)" class="delete-btn">
+            <template #icon>
+              <DeleteOutlined />
+            </template>
           </a-button>
         </div>
 
-        <!-- 要点列表 -->
-        <div class="points-list">
-          <div v-for="(point, pIdx) in item.points" :key="pIdx" class="point-item">
-            <span class="point-dot">•</span>
+        <div class="section-points">
+          <div v-for="(point, pointIdx) in section.points" :key="pointIdx" class="point-item">
+            <span class="point-bullet">•</span>
             <a-input
-              v-model:value="item.points[pIdx]"
-              size="small"
+              v-model:value="section.points[pointIdx]"
+              placeholder="要点内容"
               class="point-input"
-              placeholder="输入要点..."
             />
             <a-button
               type="text"
               size="small"
-              danger
-              class="point-delete"
-              @click="removePoint(index, pIdx)"
-              :disabled="item.points.length <= 1"
+              @click="deletePoint(index, pointIdx)"
+              class="delete-point-btn"
             >
-              <CloseOutlined />
+              ×
             </a-button>
           </div>
-          <a-button type="dashed" size="small" class="add-point-btn" @click="addPoint(index)">
-            <PlusOutlined />
+          <a-button type="dashed" @click="addPoint(index)" class="add-point-btn">
+            <template #icon>
+              <PlusOutlined />
+            </template>
             添加要点
           </a-button>
         </div>
       </div>
     </div>
 
-    <!-- 添加章节 -->
-    <a-button type="dashed" block class="add-section-btn" @click="addSection">
-      <PlusOutlined />
-      添加章节
-    </a-button>
+    <div class="ai-chat-section" :class="{ 'vip-only': !isVip }">
+      <div class="chat-header">
+        <RobotOutlined />
+        <span>AI 助手修改大纲</span>
+        <span v-if="!isVip" class="vip-badge-small">
+          <CrownOutlined />
+          VIP
+        </span>
+      </div>
+      <div v-if="isVip" class="chat-input-wrapper">
+        <a-textarea
+          v-model:value="modifySuggestion"
+          placeholder="告诉 AI 如何修改大纲，例如：请在第二章节后增加一个关于实践案例的章节"
+          :rows="3"
+          :maxlength="500"
+          show-count
+          class="chat-textarea"
+        />
+        <a-button
+          type="primary"
+          :loading="aiModifying"
+          :disabled="!modifySuggestion.trim()"
+          @click="handleAiModify"
+          class="ai-modify-btn"
+        >
+          <template #icon>
+            <RobotOutlined />
+          </template>
+          AI 修改大纲
+        </a-button>
+      </div>
+      <div v-else class="vip-upgrade-notice">
+        <CrownOutlined class="vip-icon" />
+        <p>AI 修改大纲功能仅限 VIP 会员使用</p>
+        <RouterLink to="/vip" class="upgrade-btn"> 立即升级 VIP </RouterLink>
+      </div>
+    </div>
 
-    <!-- 确认按钮 -->
     <div class="actions">
+      <a-button size="large" @click="addSection" class="add-section-btn">
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        添加章节
+      </a-button>
+
       <a-button
         type="primary"
         size="large"
@@ -90,131 +111,168 @@
         <template #icon>
           <CheckOutlined />
         </template>
-        确认大纲，开始撰写
+        确认并生成正文
       </a-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import {
-  HolderOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CloseOutlined,
-  PlusOutlined,
   CheckOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  RobotOutlined,
+  CrownOutlined,
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
+import Sortable from 'sortablejs'
+import { aiModifyOutline } from '@/api/articleController'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { USER_ROLE_VIP } from '@/constants/user'
 
-interface OutlineItem {
+interface OutlineSection {
   section: number
   title: string
   points: string[]
 }
 
 interface Props {
-  outline: OutlineItem[]
+  outline: API.OutlineSection[]
+  taskId: string
   loading?: boolean
-  taskId?: string
 }
 
 interface Emits {
-  (e: 'confirm', outline: OutlineItem[]): void
+  (e: 'confirm', outline: OutlineSection[]): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  taskId: '',
 })
 
 const emit = defineEmits<Emits>()
 
-// 深拷贝大纲数据，避免直接修改 props
-const localOutline = ref<OutlineItem[]>([])
+const loginUserStore = useLoginUserStore()
 
-watch(
-  () => props.outline,
-  (newVal) => {
-    if (newVal && newVal.length > 0) {
-      localOutline.value = newVal.map((item, idx) => ({
-        section: idx + 1,
-        title: item.title || '',
-        points: item.points ? [...item.points] : [''],
-      }))
-    }
-  },
-  { immediate: true, deep: true },
+// 判断是否为 VIP
+const isVip = computed(() => {
+  return loginUserStore.loginUser.userRole === USER_ROLE_VIP
+})
+
+// 转换 API 类型为内部类型
+const outlineSections = ref<OutlineSection[]>(
+  props.outline.map((item, index) => ({
+    section: item.section ?? index + 1,
+    title: item.title ?? '',
+    points: item.points ?? [],
+  })),
 )
+const outlineListRef = ref<HTMLElement | null>(null)
+const modifySuggestion = ref('')
+const aiModifying = ref(false)
 
-// 当前正在编辑的章节索引
-const editingIndex = ref<number | null>(null)
-const titleInputRef = ref()
-
-const startEdit = (index: number) => {
-  editingIndex.value = index
-  nextTick(() => {
-    titleInputRef.value?.[0]?.focus()
-  })
-}
-
-const stopEdit = () => {
-  editingIndex.value = null
-}
-
-// 删除章节
-const removeSection = (index: number) => {
-  if (localOutline.value.length <= 1) return
-  localOutline.value.splice(index, 1)
-  // 重新编号
-  localOutline.value.forEach((item, idx) => {
-    item.section = idx + 1
-  })
-}
-
-// 添加章节
-const addSection = () => {
-  const newSection = localOutline.value.length + 1
-  localOutline.value.push({
-    section: newSection,
-    title: `第${newSection}章`,
-    points: ['请输入要点'],
-  })
-}
-
-// 添加要点
-const addPoint = (sectionIndex: number) => {
-  localOutline.value[sectionIndex].points.push('')
-}
-
-// 删除要点
-const removePoint = (sectionIndex: number, pointIndex: number) => {
-  if (localOutline.value[sectionIndex].points.length <= 1) return
-  localOutline.value[sectionIndex].points.splice(pointIndex, 1)
-}
-
-// 是否可以确认
 const canConfirm = computed(() => {
-  if (localOutline.value.length === 0) return false
-  return localOutline.value.every(
-    (item) => item.title.trim() && item.points.length > 0 && item.points.some((p) => p.trim()),
+  return (
+    outlineSections.value.length > 0 &&
+    outlineSections.value.every(
+      (section) =>
+        section.title.trim() &&
+        section.points.length > 0 &&
+        section.points.every((point) => point.trim()),
+    )
   )
 })
 
-// 确认大纲
+onMounted(() => {
+  nextTick(() => {
+    if (outlineListRef.value) {
+      Sortable.create(outlineListRef.value, {
+        animation: 150,
+        handle: '.drag-handle',
+        onEnd: (evt) => {
+          const { oldIndex, newIndex } = evt
+          if (oldIndex !== undefined && newIndex !== undefined) {
+            const item = outlineSections.value.splice(oldIndex, 1)[0]
+            outlineSections.value.splice(newIndex, 0, item)
+            // 更新 section 序号
+            outlineSections.value.forEach((sec, idx) => {
+              sec.section = idx + 1
+            })
+          }
+        },
+      })
+    }
+  })
+})
+
+const addSection = () => {
+  const newSection: OutlineSection = {
+    section: outlineSections.value.length + 1,
+    title: '',
+    points: [''],
+  }
+  outlineSections.value.push(newSection)
+}
+
+const deleteSection = (index: number) => {
+  outlineSections.value.splice(index, 1)
+  // 更新 section 序号
+  outlineSections.value.forEach((sec, idx) => {
+    sec.section = idx + 1
+  })
+}
+
+const addPoint = (sectionIndex: number) => {
+  outlineSections.value[sectionIndex].points.push('')
+}
+
+const deletePoint = (sectionIndex: number, pointIndex: number) => {
+  const section = outlineSections.value[sectionIndex]
+  if (section.points.length > 1) {
+    section.points.splice(pointIndex, 1)
+  }
+}
+
 const handleConfirm = () => {
-  const result = localOutline.value.map((item, idx) => ({
-    section: idx + 1,
-    title: item.title.trim(),
-    points: item.points.filter((p) => p.trim()),
-  }))
-  emit('confirm', result)
+  emit('confirm', outlineSections.value)
+}
+
+const handleAiModify = async () => {
+  if (!modifySuggestion.value.trim()) {
+    message.warning('请输入修改建议')
+    return
+  }
+
+  aiModifying.value = true
+  try {
+    const res = await aiModifyOutline({
+      taskId: props.taskId,
+      modifySuggestion: modifySuggestion.value,
+    })
+
+    if (res.data.data) {
+      outlineSections.value = res.data.data.map((item, index) => ({
+        section: item.section ?? index + 1,
+        title: item.title ?? '',
+        points: item.points ?? [],
+      }))
+      modifySuggestion.value = ''
+      message.success('AI 已根据您的建议修改大纲')
+    }
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || 'AI 修改失败')
+  } finally {
+    aiModifying.value = false
+  }
 }
 </script>
 
 <style scoped lang="scss">
 .outline-editing-stage {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 40px 20px;
 }
@@ -240,104 +298,75 @@ const handleConfirm = () => {
 .outline-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.outline-item {
+.outline-section {
   background: var(--color-background-secondary);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 20px;
   transition: all 0.2s;
 
-  &.editing {
-    border-color: var(--color-primary);
-    background: rgba(34, 197, 94, 0.04);
-  }
-
   &:hover {
-    border-color: var(--color-primary-light, #86efac);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 }
 
-.item-header {
+.section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.item-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.drag-icon {
-  color: var(--color-text-muted);
+.drag-handle {
   cursor: grab;
-  font-size: 16px;
-  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-text-muted);
+  user-select: none;
+  line-height: 1;
 
   &:active {
     cursor: grabbing;
   }
-}
 
-.section-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--gradient-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.section-title-display {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-
-  &:hover .edit-hint {
-    opacity: 1;
+  &:hover {
+    color: var(--color-primary);
   }
 }
 
-.edit-hint {
-  font-size: 13px;
-  color: var(--color-primary);
-  opacity: 0;
-  transition: opacity 0.2s;
+.section-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .section-title-input {
+  flex: 1;
   font-size: 16px;
   font-weight: 600;
-  flex: 1;
 }
 
 .delete-btn {
   flex-shrink: 0;
 }
 
-.points-list {
-  padding-left: 48px;
+.section-points {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  padding-left: 44px;
 }
 
 .point-item {
@@ -346,9 +375,10 @@ const handleConfirm = () => {
   gap: 8px;
 }
 
-.point-dot {
+.point-bullet {
   color: var(--color-primary);
-  font-size: 16px;
+  font-size: 20px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -357,47 +387,137 @@ const handleConfirm = () => {
   font-size: 14px;
 }
 
-.point-delete {
+.delete-point-btn {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  padding: 0;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+
+  &:hover {
+    color: #ff4d4f;
+  }
 }
 
 .add-point-btn {
-  margin-top: 4px;
-  font-size: 13px;
-  width: auto;
-  color: var(--color-text-muted);
-  border-color: var(--color-border);
+  align-self: flex-start;
+}
 
-  &:hover {
-    color: var(--color-primary);
+.ai-chat-section {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.02) 100%);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 32px;
+
+  &.vip-only {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(22, 163, 74, 0.02) 100%);
     border-color: var(--color-primary);
   }
 }
 
-.add-section-btn {
-  margin-bottom: 32px;
-  height: 44px;
-  font-size: 14px;
-  border-color: var(--color-border);
-  color: var(--color-text-secondary);
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 16px;
 
-  &:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+  .anticon {
+    font-size: 18px;
   }
+
+  .vip-badge-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--gradient-primary);
+    color: white;
+    margin-left: auto;
+  }
+}
+
+.vip-upgrade-notice {
+  text-align: center;
+  padding: 20px;
+
+  .vip-icon {
+    font-size: 48px;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0 0 16px;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+  }
+
+  .upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--gradient-primary);
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-green);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.35);
+      color: white;
+    }
+  }
+}
+
+.chat-input-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.chat-textarea {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ai-modify-btn {
+  height: 40px;
+  padding: 0 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .actions {
   display: flex;
   justify-content: center;
+  gap: 16px;
 }
 
+.add-section-btn,
 .confirm-btn {
   height: 48px;
-  padding: 0 48px;
+  padding: 0 32px;
   font-size: 16px;
   font-weight: 600;
   border-radius: var(--radius-lg);
+}
+
+.confirm-btn {
   background: var(--gradient-primary) !important;
   border: none !important;
   color: white !important;

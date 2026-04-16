@@ -46,7 +46,6 @@ public class ArticleAgentService {
         try {
             // 智能体1：生成标题方案
             log.info("阶段1：开始生成标题方案, taskId={}", state.getTaskId());
-            // agent1GenerateTitleOptions(state) 现在改成了 getProxy().agent1GenerateTitleOptions(state)，这一步就是让调用走代理，从而触发 AOP 切面
             // 通过代理调用，使 AOP 生效
             getProxy().agent1GenerateTitleOptions(state);
             streamHandler.accept(SseMessageTypeEnum.AGENT1_COMPLETE.getValue());
@@ -183,11 +182,14 @@ public class ArticleAgentService {
     public void agent4AnalyzeImageRequirements(ArticleState state) {
         // 构建可用配图方式说明
         String availableMethods = buildAvailableMethodsDescription(state.getEnabledImageMethods());
+        // 构建各配图方式的详细使用指南（只包含允许的方式）
+        String methodUsageGuide = buildMethodUsageGuide(state.getEnabledImageMethods());
 
         String prompt = PromptConstant.AGENT4_IMAGE_REQUIREMENTS_PROMPT
                 .replace("{mainTitle}", state.getTitle().getMainTitle())
                 .replace("{content}", state.getContent())
-                .replace("{availableMethods}", availableMethods);
+                .replace("{availableMethods}", availableMethods)
+                .replace("{methodUsageGuide}", methodUsageGuide);
 
         String content = callLlm(prompt);
         ArticleState.Agent4Result agent4Result = parseJsonResponse(
@@ -281,50 +283,6 @@ public class ArticleAgentService {
     }
 
     // region 辅助方法
-
-    /**
-     * 验证并过滤配图需求
-     * 确保所有 imageSource 都在允许列表中
-     *
-     * @param requirements    原始配图需求列表
-     * @param enabledMethods  允许的配图方式列表
-     * @return 验证后的配图需求列表
-     */
-    private List<ArticleState.ImageRequirement> validateAndFilterImageRequirements(
-            List<ArticleState.ImageRequirement> requirements,
-            List<String> enabledMethods) {
-
-        // 如果没有限制，返回所有需求
-        if (enabledMethods == null || enabledMethods.isEmpty()) {
-            return requirements;
-        }
-
-        List<ArticleState.ImageRequirement> validatedRequirements = new ArrayList<>();
-
-        for (ArticleState.ImageRequirement req : requirements) {
-            String imageSource = req.getImageSource();
-
-            // 验证 imageSource 是否在允许列表中
-            if (enabledMethods.contains(imageSource)) {
-                validatedRequirements.add(req);
-                log.debug("配图需求验证通过, position={}, imageSource={}", req.getPosition(), imageSource);
-            } else {
-                log.warn("配图需求不符合限制被过滤, position={}, imageSource={}, enabledMethods={}",
-                        req.getPosition(), imageSource, enabledMethods);
-
-                // 尝试替换为允许的方式（优先使用第一个允许的方式）
-                if (!enabledMethods.isEmpty()) {
-                    String fallbackSource = enabledMethods.get(0);
-                    req.setImageSource(fallbackSource);
-                    validatedRequirements.add(req);
-                    log.info("配图需求已替换为允许的方式, position={}, fallback={}",
-                            req.getPosition(), fallbackSource);
-                }
-            }
-        }
-
-        return validatedRequirements;
-    }
 
     /**
      * 调用 LLM（非流式）
@@ -449,6 +407,93 @@ public class ArticleAgentService {
     }
 
     /**
+     * 构建配图方式的详细使用指南（只包含允许的方式）
+     */
+    private String buildMethodUsageGuide(List<String> enabledMethods) {
+        // 如果没有限制，返回所有方式的使用指南
+        List<String> methodsToInclude = (enabledMethods == null || enabledMethods.isEmpty())
+                ? List.of("PEXELS", "NANO_BANANA", "MERMAID", "ICONIFY", "EMOJI_PACK", "SVG_DIAGRAM")
+                : enabledMethods;
+
+        StringBuilder sb = new StringBuilder();
+
+        for (String method : methodsToInclude) {
+            String guide = getMethodDetailedGuide(method);
+            if (guide != null && !guide.isEmpty()) {
+                sb.append(guide).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * 获取单个配图方式的详细使用指南
+     */
+    private String getMethodDetailedGuide(String method) {
+        return switch (method) {
+            case "PEXELS" -> """
+                    - PEXELS: 提供英文搜索关键词(keywords)，要准确、具体。prompt 留空。""";
+            case "NANO_BANANA" -> """
+                    - NANO_BANANA: 提供详细的英文生图提示词(prompt)，描述场景、风格、细节。keywords 留空。""";
+            case "MERMAID" -> """
+                    - MERMAID: 在 prompt 字段生成完整的 Mermaid 代码（如流程图、架构图）。keywords 留空。""";
+            case "ICONIFY" -> """
+                    - ICONIFY: 提供英文图标关键词(keywords)，如：check、arrow、star、heart。prompt 留空。""";
+            case "EMOJI_PACK" -> """
+                    - EMOJI_PACK: 提供中文或英文关键词(keywords)描述表情内容。prompt 留空。系统会自动添加"表情包"搜索。""";
+            case "SVG_DIAGRAM" -> """
+                    - SVG_DIAGRAM: 在 prompt 字段描述示意图需求（中文），说明要表达的概念和关系。keywords 留空。
+                      示例：绘制思维导图样式的图，中心是"自律"，周围4个分支：习惯、环境、反馈、系统""";
+            default -> null;
+        };
+    }
+
+    /**
+     * 验证并过滤配图需求
+     * 确保所有 imageSource 都在允许列表中
+     *
+     * @param requirements    原始配图需求列表
+     * @param enabledMethods  允许的配图方式列表
+     * @return 验证后的配图需求列表
+     */
+    private List<ArticleState.ImageRequirement> validateAndFilterImageRequirements(
+            List<ArticleState.ImageRequirement> requirements,
+            List<String> enabledMethods) {
+
+        // 如果没有限制，返回所有需求
+        if (enabledMethods == null || enabledMethods.isEmpty()) {
+            return requirements;
+        }
+
+        List<ArticleState.ImageRequirement> validatedRequirements = new ArrayList<>();
+
+        for (ArticleState.ImageRequirement req : requirements) {
+            String imageSource = req.getImageSource();
+
+            // 验证 imageSource 是否在允许列表中
+            if (enabledMethods.contains(imageSource)) {
+                validatedRequirements.add(req);
+                log.debug("配图需求验证通过, position={}, imageSource={}", req.getPosition(), imageSource);
+            } else {
+                log.warn("配图需求不符合限制被过滤, position={}, imageSource={}, enabledMethods={}",
+                        req.getPosition(), imageSource, enabledMethods);
+
+                // 尝试替换为允许的方式（优先使用第一个允许的方式）
+                if (!enabledMethods.isEmpty()) {
+                    String fallbackSource = enabledMethods.get(0);
+                    req.setImageSource(fallbackSource);
+                    validatedRequirements.add(req);
+                    log.info("配图需求已替换为允许的方式, position={}, fallback={}",
+                            req.getPosition(), fallbackSource);
+                }
+            }
+        }
+
+        return validatedRequirements;
+    }
+
+    /**
      * 根据风格获取对应的 Prompt 附加内容
      *
      * @param style 文章风格
@@ -481,6 +526,7 @@ public class ArticleAgentService {
      * @param modifySuggestion 用户修改建议
      * @return 修改后的大纲
      */
+    @AgentExecution(value = "ai_modify_outline", description = "AI修改大纲")
     public List<ArticleState.OutlineSection> aiModifyOutline(String mainTitle, String subTitle,
                                                              List<ArticleState.OutlineSection> currentOutline,
                                                              String modifySuggestion) {
@@ -513,5 +559,5 @@ public class ArticleAgentService {
         }
     }
 
-// endregion
+    // endregion
 }

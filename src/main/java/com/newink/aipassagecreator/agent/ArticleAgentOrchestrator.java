@@ -3,6 +3,7 @@ package com.newink.aipassagecreator.agent;
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newink.aipassagecreator.agent.agents.*;
 import com.newink.aipassagecreator.agent.config.AgentConfig;
@@ -237,9 +238,10 @@ public class ArticleAgentOrchestrator {
                         .orElse(null);
 
                 // 提取图片结果
+                ObjectMapper objectMapper = new ObjectMapper();
                 @SuppressWarnings("unchecked")
                 List<ArticleState.ImageResult> images = finalState.value(KEY_IMAGES)
-                        .map(v ->(List<ArticleState.ImageResult>) v)
+                        .map(v -> objectMapper.convertValue(v, new TypeReference<List<ArticleState.ImageResult>>() {}))
                         .orElse(null);
 
                 // 提取完整内容

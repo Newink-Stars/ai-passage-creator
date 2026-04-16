@@ -3,12 +3,14 @@ package com.newink.aipassagecreator.agent;
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newink.aipassagecreator.agent.agents.*;
 import com.newink.aipassagecreator.agent.config.AgentConfig;
 import com.newink.aipassagecreator.agent.context.StreamHandlerContext;
 import com.newink.aipassagecreator.agent.parallel.ParallelImageGenerator;
 import com.newink.aipassagecreator.model.dto.article.ArticleState;
 import com.newink.aipassagecreator.model.enums.SseMessageTypeEnum;
+import com.newink.aipassagecreator.utils.GsonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -149,14 +151,23 @@ public class ArticleAgentOrchestrator {
             if (result.isPresent()) {
                 OverAllState finalState = result.get();
 
+                // 调试：打印所有状态键值
+                log.info("阶段2 StateGraph 返回状态，taskId={}", state.getTaskId());
+                log.info("finalState 所有键: {}", finalState.toString());
+                ObjectMapper objectMapper = new ObjectMapper();
+                // 尝试从状态中获取 outline，处理类型丢失问题
                 ArticleState.OutlineResult outline = finalState.value(KEY_OUTLINE)
                         .map(v -> {
-                            if (v instanceof ArticleState.OutlineResult) {
-                                return (ArticleState.OutlineResult) v;
+                            try {
+                                return objectMapper.convertValue(v, ArticleState.OutlineResult.class);
+                            } catch (Exception e) {
+                                log.error("outline转换失败", e);
+                                return null;
                             }
-                            return null;
                         })
                         .orElse(null);
+
+                log.info("outline 最终解析结果: {}", outline);
 
                 if (outline != null) {
                     state.setOutline(outline);
@@ -228,7 +239,7 @@ public class ArticleAgentOrchestrator {
                 // 提取图片结果
                 @SuppressWarnings("unchecked")
                 List<ArticleState.ImageResult> images = finalState.value(KEY_IMAGES)
-                        .map(v -> (List<ArticleState.ImageResult>) v)
+                        .map(v ->(List<ArticleState.ImageResult>) v)
                         .orElse(null);
 
                 // 提取完整内容
